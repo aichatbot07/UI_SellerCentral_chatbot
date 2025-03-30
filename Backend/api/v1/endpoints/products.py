@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
 import os
 import ast
+import json
 from google.cloud import bigquery
 from api.schemas.product import ProductListResponse, ProductDetailResponse
 
@@ -107,18 +108,70 @@ def get_all_products(seller_id : int):
 
 
 
+
 @router.get("/products/{product_id}", response_model=ProductDetailResponse)
 def get_product_by_id(product_id: str):
     """
     Fetches a single product from BigQuery using product ID.
     """
+    try:
+        # Create the query using parameterized query
+        query = """
+            SELECT 
+                parent_asin,
+                title,
+                main_category,
+                average_rating,
+                rating_number,
+                features,
+                description,
+                price,
+                images,
+                videos,
+                store,
+                categories,
+                bought_together
+            FROM `spheric-engine-451615-a8.Amazon_Reviews_original_dataset_v4.meta_data`
+            WHERE parent_asin = @product_id
+        """
+        
+        # Execute the query with parameterized query to bind product_id safely
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("product_id", "STRING", product_id)
+            ]
+        )
+        
+        # Execute the query
+        results = client.query(query, job_config=job_config).result()
 
-    query = f"SELECT * FROM `spheric-engine-451615-a8.Amazon_Reviews_original_dataset_v4.meta_data` WHERE id = '{product_id}'"
-    results = client.query(query).result()
-    
-    product = [row for row in results]
-    if not product:
-        return {"error": "Product not found"}
+        # If no results are found
+        rows = list(results)  # Convert RowIterator to list
+        if not rows:
+            raise HTTPException(status_code=404, detail="Product not found")
 
-    product = product[0]
-    return {"id": product["id"], "name": product["name"], "description": product["description"], "price": product["price"], "category": product["category"]}
+        # Get the first product from the results
+        product = rows[0]
+        
+        def safe_parse_list(value):
+            return json.loads(value) if isinstance(value, str) and value.startswith('[') else value or []
+
+        # Construct the response with the required product details
+        return ProductDetailResponse(
+            id=product["parent_asin"],
+            name=product["title"],
+            description=product.get("description", None),
+            price=product.get("price", 0.0),
+            image_url=product.get("images", None),
+            average_rating=product.get("average_rating", None),
+            rating_number=product.get("rating_number", None),
+            features=safe_parse_list(product.get("features", '[]')),
+            store=product.get("store", None),
+            categories=safe_parse_list(product.get("categories", '[]')),
+            bought_together=safe_parse_list(product.get("bought_together", '[]')),
+            additional_details=None  # You can extend this if you have more info for details
+        )
+
+    except Exception as e:
+        # Handle any errors during the querying process
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
