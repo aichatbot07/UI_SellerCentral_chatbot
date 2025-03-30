@@ -1,21 +1,47 @@
 import React, { useState } from "react";
 import { Fab, Modal, Box, Typography, TextField, Button } from "@mui/material";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
+import axios from "axios"; // Import axios for making API calls
 
 const Chatbot = () => {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [userInput, setUserInput] = useState("");
+  const [loading, setLoading] = useState(false); // Track loading state
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (userInput.trim() !== "") {
+      // Add user message to the chat
       setMessages([...messages, { sender: "user", text: userInput }]);
-      setUserInput("");
-      
-      // Simulate chatbot response (replace with API call)
-      setTimeout(() => {
-        setMessages((prev) => [...prev, { sender: "bot", text: "Processing your request..." }]);
-      }, 1000);
+      setUserInput(""); // Clear input field
+
+      // Display processing message while waiting for API response
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { sender: "bot", text: "Processing your request..." },
+      ]);
+      setLoading(true); // Set loading state to true
+
+      try {
+        // Make an API call to your backend
+        const response = await axios.post("http://localhost:8000/chat", {
+          question: userInput,
+        });
+
+        // After receiving response, display the bot's answer
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { sender: "bot", text: response.data.response },
+        ]);
+      } catch (error) {
+        // Handle error (in case of backend failure, etc.)
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { sender: "bot", text: "Sorry, I couldn't process your request." },
+        ]);
+      } finally {
+        setLoading(false); // Reset loading state
+      }
     }
   };
 
@@ -34,6 +60,7 @@ const Chatbot = () => {
                 <strong>{msg.sender === "user" ? "You" : "Bot"}:</strong> {msg.text}
               </Typography>
             ))}
+            {loading && <Typography align="center">Bot is typing...</Typography>} {/* Loading indicator */}
           </Box>
           <TextField
             fullWidth

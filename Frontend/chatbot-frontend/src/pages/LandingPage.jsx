@@ -1,15 +1,26 @@
-import React from "react";
-import { Container, Typography, Grid } from "@mui/material";
+import React, { useEffect, useState } from "react";
+import { Container, Typography, Grid, Card, CardContent, Box } from "@mui/material";
 import CategoryCard from "../components/CategoryCard";
 import Chatbot from "../components/Chatbot";
-
-const categories = [
-  { category: "beauty", title: "Beauty Products", image: "/assets/beauty.jpg" },
-  { category: "shopping", title: "E-Commerce", image: "/assets/shopping.jpg" },
-  { category: "fitness", title: "Fitness & Health", image: "/assets/fitness.jpg" },
-];
+import axios from "axios"; // Import axios for making API calls
 
 const LandingPage = () => {
+  const [products, setProducts] = useState([]);
+  
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        // Fetch data from the backend products endpoint
+        const response = await axios.get("http://localhost:8000/products");
+        setProducts(response.data.products); // Store the products in state
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
   return (
     <Container>
       <Typography variant="h4" fontWeight="bold" textAlign="center" mt={4}>
@@ -20,9 +31,26 @@ const LandingPage = () => {
       </Typography>
 
       <Grid container spacing={2} justifyContent="center">
-        {categories.map((item) => (
-          <Grid item key={item.category}>
-            <CategoryCard category={item.category} title={item.title} image={item.image} />
+        {products.map((product) => (
+          <Grid item key={product.id}>
+            <Card
+              sx={{
+                width: 250,
+                boxShadow: 3,
+                borderRadius: 2,
+                cursor: "pointer",
+                "&:hover": {
+                  boxShadow: 6,
+                },
+              }}
+              onClick={() => window.location.href = `/product/${product.id}`}
+            >
+              <CardContent>
+                <Typography variant="h6">{product.name}</Typography>
+                <Typography variant="body2" color="textSecondary">{product.category}</Typography>
+                <Typography variant="body1" color="primary">{`$${product.price}`}</Typography>
+              </CardContent>
+            </Card>
           </Grid>
         ))}
       </Grid>
