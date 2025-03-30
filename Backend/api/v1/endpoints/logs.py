@@ -6,6 +6,8 @@ from datetime import datetime
 router = APIRouter()
 client = bigquery.Client()
 
+#To be completed
+
 @router.post("/logs")
 def log_chat(log: LogEntry):
     query = f"""
