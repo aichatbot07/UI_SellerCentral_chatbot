@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 import os
 import ast
 from google.cloud import bigquery
@@ -15,7 +15,7 @@ def get_all_products():
 
 
 @router.get("/products", response_model=ProductListResponse)
-def get_all_products():
+def get_all_products(seller_id : int):
     """
     Fetches all products from BigQuery.
     """
@@ -36,10 +36,18 @@ def get_all_products():
                 categories,
                 bought_together
             FROM `spheric-engine-451615-a8.Amazon_Reviews_original_dataset_v4.meta_data`
-            LIMIT 100
+            WHERE seller_id = @seller_id
+            
         """
+
+        # Execute the query with parameterized query to bind seller_id safely
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("seller_id", "INT64", seller_id)
+            ]
+        )
         
-        results = client.query(query).result()
+        results = client.query(query, job_config=job_config).result()
 
         # If no results are found
         if not results:
