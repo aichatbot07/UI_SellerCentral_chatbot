@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from api.v1.endpoints import products
+from api.v1.endpoints import products, auth
 
 app = FastAPI()
 
@@ -9,3 +9,4 @@ def home():
 
 
 app.include_router(products.router)
+app.include_router(auth.router)

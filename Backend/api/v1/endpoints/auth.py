@@ -1,36 +1,62 @@
 from fastapi import APIRouter, HTTPException, Depends
 from google.cloud import bigquery
-from app.schemas.auth import LoginRequest, LoginResponse
-from app.core.security import verify_password, create_access_token
+from pydantic import BaseModel
+# from passlib.context import CryptContext
 
 router = APIRouter()
-
-# Initialize BigQuery client
 client = bigquery.Client()
+# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-@router.post("/login", response_model=LoginResponse)
-def login(request: LoginRequest):
+class SellerLoginRequest(BaseModel):
+    email: str
+    password: str
 
+class SellerResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+
+
+
+
+@router.post("/login", response_model=SellerResponse)
+def seller_login(request: SellerLoginRequest):
     """
-    Authenticates a seller and returns a JWT token.
-
-    Steps:
-    1. Query BigQuery to check if the seller exists.
-    2. Verify the password using a hashing function.
-    3. Generate a JWT token if authentication is successful.
+    Authenticates a seller by email and password.
     """
+    try:
+        # Query to fetch seller by email
+        query = """
+            SELECT id, name, email, password
+            FROM `spheric-engine-451615-a8.Amazon_Reviews_original_dataset_v4.Sellers`
+            WHERE email = @email
+        """
+        
+        # Parameterized query to prevent SQL injection
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("email", "STRING", request.email)
+            ]
+        )
 
-    query = f"SELECT * FROM `your_project_id.your_dataset.sellers` WHERE email = '{request.email}'"
-    results = client.query(query).result()
-    user = [row for row in results]
+        results = client.query(query, job_config=job_config).result()
+        rows = list(results)  # Convert RowIterator to list
 
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        if not rows:
+            raise HTTPException(status_code=404, detail="Seller not found")
 
-    user = user[0]  # Get first result
-    
-    if not verify_password(request.password, user["password"]):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        # Get seller details
+        seller = rows[0]
+        
+        # Verify password
+        if request.password != seller["password"]:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    access_token = create_access_token({"email": request.email})
-    return {"access_token": access_token, "token_type": "bearer"}
+        return SellerResponse(
+            id=seller["id"],
+            name=seller["name"],
+            email=seller["email"]
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
