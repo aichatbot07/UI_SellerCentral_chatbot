@@ -11,32 +11,28 @@ const Chatbot = () => {
 
   const handleSendMessage = async () => {
     if (userInput.trim() !== "") {
-      // Add user message to the chat
-      setMessages([...messages, { sender: "user", text: userInput }]);
+      const newMessages = [
+        ...messages,
+        { sender: "user", text: userInput.trim() }, // Trim input
+        { sender: "bot", text: "Processing your request..." },
+      ];
+      setMessages(newMessages);
       setUserInput(""); // Clear input field
 
-      // Display processing message while waiting for API response
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { sender: "bot", text: "Processing your request..." },
-      ]);
       setLoading(true); // Set loading state to true
 
       try {
-        // Make an API call to your backend
         const response = await axios.post("http://localhost:8000/chat", {
-          question: userInput,
+          question: userInput.trim(),
         });
 
-        // After receiving response, display the bot's answer
-        setMessages((prevMessages) => [
-          ...prevMessages,
+        setMessages([
+          ...newMessages,
           { sender: "bot", text: response.data.response },
         ]);
       } catch (error) {
-        // Handle error (in case of backend failure, etc.)
-        setMessages((prevMessages) => [
-          ...prevMessages,
+        setMessages([
+          ...newMessages,
           { sender: "bot", text: "Sorry, I couldn't process your request." },
         ]);
       } finally {

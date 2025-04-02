@@ -1,12 +1,12 @@
-// src/pages/ProductDetailPage.jsx
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import { Container, Typography, Card, CardContent, Grid } from "@mui/material";
+import { Container, Typography, Card, CardContent, Grid, CircularProgress } from "@mui/material";
 
 const ProductDetailPage = () => {
   const { productId } = useParams();
   const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true); // Track loading state
 
   useEffect(() => {
     const fetchProductDetails = async () => {
@@ -15,13 +15,29 @@ const ProductDetailPage = () => {
         setProduct(response.data); // Assuming the backend returns a product object
       } catch (error) {
         console.error("Error fetching product details:", error);
+      } finally {
+        setLoading(false); // Reset loading state
       }
     };
 
     fetchProductDetails();
   }, [productId]);
 
-  if (!product) return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <Container>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
+  if (!product) {
+    return (
+      <Container>
+        <Typography variant="h6" color="error">Sorry, the product details could not be fetched.</Typography>
+      </Container>
+    );
+  }
 
   return (
     <Container>
