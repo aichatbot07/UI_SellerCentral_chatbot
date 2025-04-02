@@ -3,10 +3,15 @@ import os
 import ast
 import json
 from google.cloud import bigquery
+from dotenv import load_dotenv
 from api.schemas.product import ProductListResponse, ProductDetailResponse
 
+env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.env"))
+load_dotenv(env_path)
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "C:\\Users\\navee\\OneDrive\\Desktop\\Northeastern\\MLOPS\\UI_SellerCentral_chatbot\\Backend\\spheric-engine-451615-a8-f9523dbb5c8a.json"
+
+credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
 router = APIRouter()
 client = bigquery.Client()
 
