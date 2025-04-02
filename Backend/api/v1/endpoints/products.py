@@ -3,34 +3,27 @@ import os
 import ast
 import json
 from google.cloud import bigquery
-from api.schemas.product import ProductListResponse, ProductDetailResponse
 from dotenv import load_dotenv
+from api.schemas.product import ProductListResponse, ProductDetailResponse
 
-# Load environment variables from .env file
-load_dotenv()
+env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.env"))
+load_dotenv(env_path)
 
-# Set Google Application credentials from .env
-google_credentials = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-if google_credentials:
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = google_credentials
-else:
-    raise HTTPException(status_code=500, detail="Google credentials not found in environment variables")
 
-# Initialize FastAPI router
+credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
 router = APIRouter()
 client = bigquery.Client()
 
 @router.get("/Productstest")
 def get_all_products():
-    """
-    Test endpoint to check if products API is running.
-    """
-    return {"message": "products is running"}
+        return {"message": "products is running"}
+
 
 @router.get("/products", response_model=ProductListResponse)
-def get_all_products(seller_id: int):
+def get_all_products(seller_id : int):
     """
-    Fetches all products from BigQuery for a given seller ID.
+    Fetches all products from BigQuery.
     """
     try:
         query = """
@@ -50,6 +43,7 @@ def get_all_products(seller_id: int):
                 bought_together
             FROM `spheric-engine-451615-a8.Amazon_Reviews_original_dataset_v4.meta_data`
             WHERE seller_id = @seller_id
+            
         """
 
         # Execute the query with parameterized query to bind seller_id safely
@@ -65,7 +59,6 @@ def get_all_products(seller_id: int):
         if not results:
             return {"products": [], "total_count": 0}
 
-        # Process results
         products = [
             {
                 "id": row["parent_asin"], 
@@ -73,24 +66,53 @@ def get_all_products(seller_id: int):
                 "category": row["main_category"],
                 "average_rating": row.get("average_rating", None),
                 "rating_number": row.get("rating_number", None),
-                "features": safe_parse_list(row.get("features", '[]')),
+                "features": row.get("features", []),  # Ensure it's a list
                 "description": row.get("description", ""),
                 "price": row.get("price", 0.0),  # Default to 0.0 if price is missing
                 "image_url": row.get("images", None),  # Handle missing images
                 "videos": row.get("videos", None),  # Handle missing videos
                 "store": row.get("store", None),  # Handle missing store
-                "categories": safe_parse_list(row.get("categories", '[]')),
-                "bought_together": safe_parse_list(row.get("bought_together", '[]')),
+                "categories": row.get("categories", []),  # Ensure it's a list
+                "bought_together": row.get("bought_together", []),  # Ensure it's a list
             } 
             for row in results
         ]
 
+        # Fixing the features and categories fields if they are in a wrong format
+        for product in products:
+            # For features
+            if isinstance(product["features"], str):
+                # Check for a malformed string or 'List' and convert to proper list
+                if product["features"].startswith("[") and product["features"].endswith("]"):
+                    try:
+                        product["features"] = ast.literal_eval(product["features"])  # Safely convert string to list
+                    except (ValueError, SyntaxError):
+                        product["features"] = []  # Default to empty list if eval fails
+                else:
+                    product["features"] = []  # Default to empty list if it's not a valid list string
+            
+            # For categories
+            if isinstance(product["categories"], str):
+                # Check for a malformed string or 'List' and convert to proper list
+                if product["categories"].startswith("[") and product["categories"].endswith("]"):
+                    try:
+                        product["categories"] = ast.literal_eval(product["categories"])  # Safely convert string to list
+                    except (ValueError, SyntaxError):
+                        product["categories"] = []  # Default to empty list if eval fails
+                else:
+                    product["categories"] = []  # Default to empty list if it's not a valid list string
+
         total_count = len(products)
+
         return {"products": products, "total_count": total_count}
 
     except Exception as e:
         # Handle any errors during the querying process
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+
+
+
 
 @router.get("/products/{product_id}", response_model=ProductDetailResponse)
 def get_product_by_id(product_id: str):
@@ -136,6 +158,9 @@ def get_product_by_id(product_id: str):
         # Get the first product from the results
         product = rows[0]
         
+        def safe_parse_list(value):
+            return json.loads(value) if isinstance(value, str) and value.startswith('[') else value or []
+
         # Construct the response with the required product details
         return ProductDetailResponse(
             id=product["parent_asin"],
@@ -155,16 +180,3 @@ def get_product_by_id(product_id: str):
     except Exception as e:
         # Handle any errors during the querying process
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
-
-
-def safe_parse_list(value):
-    """
-    A helper function to safely parse values that should be a list.
-    """
-    if isinstance(value, str):
-        try:
-            # Try to parse string as JSON (to handle cases like a list string)
-            return json.loads(value) if value.startswith('[') else []
-        except json.JSONDecodeError:
-            return []  # Return empty list if it's not valid JSON
-    return value or []  # Return original value if it's already a list, or empty list if None
