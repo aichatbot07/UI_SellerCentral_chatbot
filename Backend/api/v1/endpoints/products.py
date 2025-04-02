@@ -5,6 +5,8 @@ import json
 from google.cloud import bigquery
 from dotenv import load_dotenv
 from api.schemas.product import ProductListResponse, ProductDetailResponse
+from google.cloud import secretmanager
+
 
 env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.env"))
 load_dotenv(env_path)
@@ -18,6 +20,64 @@ client = bigquery.Client()
 @router.get("/Productstest")
 def get_all_products():
         return {"message": "products is running"}
+
+@router.get("/products/filter")
+def get_products_by_seller_and_category(seller_id: int, main_category: str):
+    """
+    Fetches products based on seller_id and main_category from BigQuery.
+    """
+    try:
+        query = """
+            SELECT 
+                parent_asin,
+                title,
+                main_category,
+                average_rating,
+                rating_number,
+                features,
+                description,
+                price,
+                images,
+                videos,
+                store,
+                categories,
+                bought_together
+            FROM `spheric-engine-451615-a8.Amazon_Reviews_original_dataset_v4.meta_data`
+            WHERE seller_id = @seller_id AND main_category = @main_category
+        """
+
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("seller_id", "INT64", seller_id),
+                bigquery.ScalarQueryParameter("main_category", "STRING", main_category)
+            ]
+        )
+
+        results = client.query(query, job_config=job_config).result()
+
+        products = [
+            {
+                "id": row["parent_asin"], 
+                "name": row["title"],
+                "category": row["main_category"],
+                "average_rating": row.get("average_rating"),
+                "rating_number": row.get("rating_number"),
+                "features": row.get("features", []),
+                "description": row.get("description", ""),
+                "price": row.get("price", 0.0),
+                "image_url": row.get("images"),
+                "videos": row.get("videos"),
+                "store": row.get("store"),
+                "categories": row.get("categories", []),
+                "bought_together": row.get("bought_together", []),
+            } 
+            for row in results
+        ]
+
+        return {"products": products, "total_count": len(products)}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
 @router.get("/products", response_model=ProductListResponse)
