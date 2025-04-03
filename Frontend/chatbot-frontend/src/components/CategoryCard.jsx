@@ -1,33 +1,33 @@
-// src/components/CategoryCard.jsx
-import React from "react";
-import { Card, CardContent, Typography } from "@mui/material";
-import { Link } from "react-router-dom";  // Import Link from react-router-dom
+import { useNavigate } from "react-router-dom";
 
-const CategoryCard = ({ title, category, image }) => {
+const categories = [
+  "ALL BEAUTY",
+  "Musical_Instruments",
+  "Health_and_Personal_Care",
+  "Appliances",
+  "Amazon_Fashion",
+];
+
+const CategoryCard = () => {
+  const navigate = useNavigate();
+  const sellerId = localStorage.getItem("seller_id"); // Assuming seller ID is stored in localStorage
+
+  const handleCategoryClick = (category) => {
+    if (sellerId) {
+      navigate(`/products?category=${category}`);
+    } else {
+      alert("Seller ID not found. Please log in.");
+    }
+  };
+
   return (
-    <Link to={`/category/${category}`} style={{ textDecoration: "none" }}>
-      <Card
-        sx={{
-          width: 250,
-          height: 150,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          textAlign: "center",
-          boxShadow: 3,
-          borderRadius: 2,
-          p: 2,
-        }}
-      >
-        <img src={image} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }} />
-        <CardContent>
-          <Typography variant="h6" component="div">
-            {title}
-          </Typography>
-        </CardContent>
-      </Card>
-    </Link>
+    <div className="category-container">
+      {categories.map((category) => (
+        <div key={category} className="category-card" onClick={() => handleCategoryClick(category)}>
+          {category.replace(/_/g, " ")}
+        </div>
+      ))}
+    </div>
   );
 };
 

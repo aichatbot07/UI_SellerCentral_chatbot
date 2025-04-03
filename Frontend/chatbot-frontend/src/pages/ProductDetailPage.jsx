@@ -13,7 +13,7 @@ import {
   Alert,
 } from "@mui/material";
 
-const API_BASE_URL = "http://localhost:8000"; // Centralized API URL
+const API_BASE_URL = "https://fastapi-app-1061880689774.us-central1.run.app"; // Updated API URL
 
 const ProductDetailPage = () => {
   const { productId } = useParams();
@@ -24,8 +24,9 @@ const ProductDetailPage = () => {
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
+        // Using the new API URL and productId to fetch the product details
         const response = await axios.get(`${API_BASE_URL}/products/${productId}`);
-        setProduct(response.data);
+        setProduct(response.data); // Assuming the response contains product details in a compatible format
       } catch (err) {
         console.error("Error fetching product details:", err);
         setError("Failed to load product details. Please try again.");
@@ -117,7 +118,6 @@ const ProductDetailPage = () => {
           <Typography variant="body1" color="textSecondary" paragraph>
             {product.description ? parseJsonSafe(product.description).join(", ") : "No description available for this product."}
           </Typography>
-          
         </Grid>
       </Grid>
     </Container>
