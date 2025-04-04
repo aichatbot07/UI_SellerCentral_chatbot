@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Card, CardContent, CardMedia, Typography, Grid } from "@mui/material"; // MUI components for styling
-
+import Chatbot from "./Chatbot";
 const CategoryProducts = () => {
   const { category } = useParams(); // Get the category from the URL
   const [products, setProducts] = useState([]);
@@ -24,21 +24,6 @@ const CategoryProducts = () => {
 
         const sellerId = sellerData.id; // Get the seller ID from local storage
 
-        // Ensure that the category name is exactly as needed (preserving case)
-        const categories = [
-          "All Beauty",
-          "AMAZON FASHION",
-          "Appliances",
-          "Health & Personal Care",
-          "Tools & Home Improvement"
-        ];
-
-        if (!categories.includes(category)) {
-          setError("Invalid category.");
-          setLoading(false);
-          return;
-        }
-
         const response = await axios.get(
           `https://fastapi-app-1061880689774.us-central1.run.app/products/filter?seller_id=${sellerId}&main_category=${category}`
         );
@@ -57,7 +42,7 @@ const CategoryProducts = () => {
     };
 
     fetchProducts();
-  }, [category]); // Re-fetch products if the category changes
+  }, [category]);
 
   // Filter products based on the search query
   const handleSearch = (event) => {
@@ -70,14 +55,14 @@ const CategoryProducts = () => {
   };
 
   const handleProductClick = (productId) => {
-    navigate(`/product/${productId}`); // Navigate to product detail page
+    navigate(`/product/${productId}`); // Navigate to product detail page with productId
   };
 
   return (
     <div className="category-products-container">
       {loading && <p>Loading products...</p>}
       {error && <p>{error}</p>}
-      
+
       {/* Search Bar */}
       <div className="search-bar">
         <input
@@ -87,7 +72,7 @@ const CategoryProducts = () => {
           onChange={handleSearch} // Trigger search on input change
         />
       </div>
-      
+
       {filteredProducts.length === 0 ? (
         <p>No products available in this category.</p>
       ) : (
@@ -127,6 +112,7 @@ const CategoryProducts = () => {
               </Grid>
             ))}
           </Grid>
+          <Chatbot />
         </div>
       )}
     </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import Chatbot from "../components/Chatbot";
 import {
   Container,
   Typography,
@@ -23,10 +24,17 @@ const ProductDetailPage = () => {
 
   useEffect(() => {
     const fetchProductDetails = async () => {
+      console.log("productId:", productId); // Add this log to check the productId value
+      
+      if (!productId) {
+        setError("Product ID is missing");
+        setLoading(false);
+        return;
+      }
+  
       try {
-        // Using the new API URL and productId to fetch the product details
         const response = await axios.get(`${API_BASE_URL}/products/${productId}`);
-        setProduct(response.data); // Assuming the response contains product details in a compatible format
+        setProduct(response.data);
       } catch (err) {
         console.error("Error fetching product details:", err);
         setError("Failed to load product details. Please try again.");
@@ -34,9 +42,10 @@ const ProductDetailPage = () => {
         setLoading(false);
       }
     };
-
+  
     fetchProductDetails();
   }, [productId]);
+  
 
   const parseJsonSafe = (str) => {
     if (!str) return null;
@@ -120,6 +129,7 @@ const ProductDetailPage = () => {
           </Typography>
         </Grid>
       </Grid>
+      <Chatbot />
     </Container>
   );
 };

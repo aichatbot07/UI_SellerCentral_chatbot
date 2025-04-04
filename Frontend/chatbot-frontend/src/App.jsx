@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import LandingPage from "./pages/LandingPage";
+import ProductDetailPage from "./pages/ProductDetailPage";  // Import the ProductDetailPage component
 import ProductListPage from "./pages/ProductListPage";
 import CategoryProducts from "./components/CategoryProducts";
 import Header from "./components/Header";  // Import the header component
@@ -35,8 +36,16 @@ const App = () => {
           }
         />
         
-        {/* Example of additional route */}
-        {/* <Route path="/product/:id" element={<ProductDetail />} /> */}
+        {/* Show ProductDetailPage for a specific product */}
+        <Route
+          path="/product/:productId"  // Match the product ID in the URL
+          element={
+            <>
+              <Header />
+              <ProductDetailPage />  {/* Show the ProductDetailPage component */}
+            </>
+          }
+        />
 
         {/* If needed, you can add more routes here */}
       </Routes>
