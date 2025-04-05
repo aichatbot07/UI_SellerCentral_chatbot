@@ -219,7 +219,14 @@ def get_product_by_id(product_id: str):
         product = rows[0]
         
         def safe_parse_list(value):
-            return json.loads(value) if isinstance(value, str) and value.startswith('[') else value or []
+            if not value:
+                return []
+            try:
+                parsed = json.loads(value)
+                return parsed if isinstance(parsed, list) else []
+            except (json.JSONDecodeError, TypeError):
+                return []
+
 
         # Construct the response with the required product details
         return ProductDetailResponse(
