@@ -2,28 +2,50 @@ import React, { useState } from "react";
 import { Fab, Modal, Box, Typography, TextField, Button } from "@mui/material";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
 import axios from "axios"; // Import axios for making API calls
+import { useLocation } from "react-router-dom";
 
 const Chatbot = () => {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false); // Track loading state
-
+  const location = useLocation();
+  const isProductPage = location.pathname.startsWith("/product/"); // or whatever your route looks like
+  const productId = isProductPage ? location.pathname.split("/product/")[1] : null;
+  
   const handleSendMessage = async () => {
     if (userInput.trim() !== "") {
-      const newMessages = [
-        ...messages,
-        { sender: "user", text: userInput.trim() },
-      ];
+      const newMessages = [...messages, { sender: "user", text: userInput.trim() }];
       setMessages(newMessages);
       setUserInput("");
       setLoading(true);
-
+  
+      // 🤖 Context-aware prompt engineering
+      let fullQuestion = userInput.trim();
+  
+      if (!productId) {
+        // 🧠 Not on product page → inject seller context into the question
+        fullQuestion = `The seller ID is seller123. ${userInput.trim()}`;
+      }
+  
+      const payload = {
+        question: fullQuestion,
+      };
+  
+      // 🛍️ If on product page, include product ID as 'asin'
+      if (productId) {
+        payload.asin = productId;  // backend expects 'asin', not 'product_id'
+      }
+  
       try {
-        const response = await axios.post("https://fastapi-app-1061880689774.us-central1.run.app/chat", {
-          question: userInput.trim(),
-        });
-
+        const response = await axios.post(
+          "https://fastapi-app-1061880689774.us-central1.run.app/chat",
+          payload
+        );
+        
+        
+        
+  
         setMessages([
           ...newMessages,
           { sender: "bot", text: response.data.answer },
@@ -42,6 +64,8 @@ const Chatbot = () => {
       }
     }
   };
+  
+  
 
 
   return (
@@ -70,7 +94,7 @@ const Chatbot = () => {
                 <strong>{msg.sender === "user" ? "You" : "Bot"}:</strong> {msg.text}
               </Typography>
             ))}
-            {loading && <Typography align="center">Bot is typing...</Typography>}
+            {loading && <Typography align="left">Bot is typing...</Typography>}
           </Box>
 
           <TextField

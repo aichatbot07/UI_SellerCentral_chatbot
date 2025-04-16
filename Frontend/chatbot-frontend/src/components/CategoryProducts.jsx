@@ -57,6 +57,28 @@ const CategoryProducts = () => {
   const handleProductClick = (productId) => {
     navigate(`/product/${productId}`); // Navigate to product detail page with productId
   };
+  const parseJsonSafe = (str) => {
+    if (!str) return null;
+    try {
+      // Replace single quotes with double quotes and `None` with `null`
+      const formattedStr = str
+        .replace(/'/g, '"') // Replace single quotes with double quotes
+        .replace(/None/g, 'null'); // Replace None with null
+      return JSON.parse(formattedStr);
+    } catch (error) {
+      console.error("Error parsing JSON:", error);
+      return null;
+    }
+  };
+
+  const getImage = function(product) {
+    const imageUrl = product.image_url
+    ? parseJsonSafe(product.image_url)?.[0]?.large || "https://via.placeholder.com/400"
+    : "https://via.placeholder.com/400";
+
+    return imageUrl
+  }
+  
 
   return (
     <div className="category-products-container">
@@ -96,7 +118,7 @@ const CategoryProducts = () => {
                   {/* Image of the product */}
                   <CardMedia
                     component="img"
-                    image={product.image_url} // Make sure the image URL is correct
+                    image={getImage(product)} // Make sure the image URL is correct
                     alt={product.name}
                     sx={{
                       height: 200, // Fixed height for all product images

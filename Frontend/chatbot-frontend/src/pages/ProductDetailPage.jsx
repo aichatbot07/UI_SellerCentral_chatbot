@@ -10,11 +10,12 @@ import {
   Box,
   Divider,
   Rating,
-  Button,
   Alert,
 } from "@mui/material";
+import { Carousel } from "react-responsive-carousel";
+import "react-responsive-carousel/lib/styles/carousel.min.css";
 
-const API_BASE_URL = "https://fastapi-app-1061880689774.us-central1.run.app"; // Updated API URL
+const API_BASE_URL = "https://fastapi-app-1061880689774.us-central1.run.app";
 
 const ProductDetailPage = () => {
   const { productId } = useParams();
@@ -24,14 +25,12 @@ const ProductDetailPage = () => {
 
   useEffect(() => {
     const fetchProductDetails = async () => {
-      console.log("productId:", productId); // Add this log to check the productId value
-      
       if (!productId) {
         setError("Product ID is missing");
         setLoading(false);
         return;
       }
-  
+
       try {
         const response = await axios.get(`${API_BASE_URL}/products/${productId}`);
         setProduct(response.data);
@@ -42,18 +41,16 @@ const ProductDetailPage = () => {
         setLoading(false);
       }
     };
-  
+
     fetchProductDetails();
   }, [productId]);
-  
 
   const parseJsonSafe = (str) => {
     if (!str) return null;
     try {
-      // Replace single quotes with double quotes and `None` with `null`
       const formattedStr = str
-        .replace(/'/g, '"') // Replace single quotes with double quotes
-        .replace(/None/g, 'null'); // Replace None with null
+        .replace(/'/g, '"')
+        .replace(/\bNone\b/g, "null");
       return JSON.parse(formattedStr);
     } catch (error) {
       console.error("Error parsing JSON:", error);
@@ -87,48 +84,88 @@ const ProductDetailPage = () => {
     );
   }
 
-  // Parse image URLs and description safely
-  const imageUrl = product.image_url
-    ? parseJsonSafe(product.image_url)?.[0]?.large || "https://via.placeholder.com/400"
-    : "https://via.placeholder.com/400";
+  const parsedImages = parseJsonSafe(product.image_url);
+  const parsedDescription = parseJsonSafe(product.description);
 
   return (
     <Container sx={{ mt: 4 }}>
       <Grid container spacing={4} justifyContent="center">
-        {/* Image Section */}
+        {/* Image Carousel */}
         <Grid item xs={12} md={6}>
-          <img
-            src={imageUrl}
-            alt={product.name}
-            style={{
-              width: "100%",
-              height: "auto",
-              objectFit: "cover",
-              borderRadius: "8px",
-            }}
-          />
+        <Carousel
+  showThumbs={false}
+  infiniteLoop
+  useKeyboardArrows
+  autoPlay
+  dynamicHeight={false}
+  showStatus={false}
+>
+  {parsedImages && parsedImages.length > 0 ? (
+    parsedImages.map((img, index) => (
+      <div key={index}>
+        <img
+          src={img.large || "https://via.placeholder.com/400"}
+          alt={`Product image ${index + 1}`}
+          style={{
+            borderRadius: "12px",
+            objectFit: "contain",
+            maxWidth: "100%",
+            maxHeight: "400px",
+            width: "100%",
+            height: "400px",
+            margin: "0 auto",
+          }}
+        />
+      </div>
+    ))
+  ) : (
+    <div>
+      <img
+        src="https://via.placeholder.com/400"
+        alt="Default product"
+        style={{
+          borderRadius: "12px",
+          objectFit: "contain",
+          maxWidth: "100%",
+          maxHeight: "400px",
+          width: "100%",
+          height: "400px",
+          margin: "0 auto",
+        }}
+      />
+    </div>
+  )}
+</Carousel>
+
         </Grid>
 
-        {/* Product Information Section */}
+        {/* Product Info */}
         <Grid item xs={12} md={6}>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
             {product.name}
           </Typography>
+
           <Box display="flex" alignItems="center" gap={1} mb={2}>
             <Rating value={product.average_rating || 0} readOnly />
             <Typography variant="body2" color="textSecondary">
               ({product.rating_number ?? 0} reviews)
             </Typography>
           </Box>
+
           <Typography variant="h5" color="primary" gutterBottom>
-            ${product.price ? product.price.toFixed(2) : "N/A"}
+            ${product.price ? product.price.toFixed(2) : "0.00"}
           </Typography>
+
           <Divider sx={{ my: 2 }} />
+
           <Typography variant="body1" color="textSecondary" paragraph>
-            {product.description ? parseJsonSafe(product.description).join(", ") : "No description available for this product."}
+            {Array.isArray(parsedDescription)
+              ? parsedDescription.join(", ")
+              : product.description || "No description available for this product."}
           </Typography>
         </Grid>
       </Grid>
+
       <Chatbot />
     </Container>
   );

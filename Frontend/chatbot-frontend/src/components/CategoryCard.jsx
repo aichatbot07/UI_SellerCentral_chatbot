@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 const categories = [
   "ALL BEAUTY",
   "Musical_Instruments",
-  "Health_and_Personal_Care",
-  "Appliances",
+  "Health & Personal_Care",
+  "Appliance",
   "Amazon_Fashion",
 ];
 
