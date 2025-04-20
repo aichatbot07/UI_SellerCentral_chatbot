@@ -1,0 +1,7 @@
+fastapi[all]
+uvicorn
+google-cloud-bigquery
+pydantic
+requests
+python-dotenv
+google-cloud-secret-manager

@@ -12,7 +12,7 @@ class ProductBase(BaseModel):
     images: List[str]
     videos: List[str]
     store: Optional[str] = None
-    categories: List[str]
+    categories: [str]
     parent_asin: str
     bought_together: List[str]
 
