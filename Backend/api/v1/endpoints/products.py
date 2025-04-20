@@ -1,21 +1,21 @@
-from fastapi import APIRouter, HTTPException, Query
-import os
-import ast
-import json
+from fastapi import APIRouter, Query, HTTPException
 from google.cloud import bigquery
+
+from typing import Optional
+
 from dotenv import load_dotenv
 from api.schemas.product import ProductListResponse, ProductDetailResponse
 from google.cloud import secretmanager
 
 
-env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.env"))
-load_dotenv(env_path)
 
-
-credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
 router = APIRouter()
 client = bigquery.Client()
+
+
+# FastAPI route to fetch products by category
+@router.get("/products/{category}")
+def get_products_by_category(category: str):
 
 @router.get("/Productstest")
 def get_all_products():
@@ -85,7 +85,20 @@ def get_all_products(seller_id : int):
     """
     Fetches all products from BigQuery.
     """
+
     try:
+        # Validate input to ensure correct category format
+        valid_categories = [
+            "All Beauty", 
+            "Health and Personal Care", 
+            "Amazon Fashion", 
+            "Appliances", 
+            "Musical Instruments"
+        ]
+        
+        if category not in valid_categories:
+            raise HTTPException(status_code=400, detail="Invalid category selected.")
+        
         query = """
             SELECT 
                 parent_asin,
@@ -102,73 +115,38 @@ def get_all_products(seller_id : int):
                 categories,
                 bought_together
             FROM `spheric-engine-451615-a8.Amazon_Reviews_original_dataset_v4.meta_data`
-            WHERE seller_id = @seller_id
-            
+            WHERE main_category = @category
         """
 
-        # Execute the query with parameterized query to bind seller_id safely
-        job_config = bigquery.QueryJobConfig(
-            query_parameters=[
-                bigquery.ScalarQueryParameter("seller_id", "INT64", seller_id)
-            ]
-        )
-        
-        results = client.query(query, job_config=job_config).result()
+        query_parameters = [bigquery.ScalarQueryParameter("category", "STRING", category)]
 
-        # If no results are found
-        if not results:
-            return {"products": [], "total_count": 0}
+        job_config = bigquery.QueryJobConfig(query_parameters=query_parameters)
+        results = client.query(query, job_config=job_config).result()
 
         products = [
             {
                 "id": row["parent_asin"], 
                 "name": row["title"],
                 "category": row["main_category"],
-                "average_rating": row.get("average_rating", None),
-                "rating_number": row.get("rating_number", None),
-                "features": row.get("features", []),  # Ensure it's a list
+                "average_rating": row.get("average_rating"),
+                "rating_number": row.get("rating_number"),
+                "features": row.get("features", []),
                 "description": row.get("description", ""),
-                "price": row.get("price", 0.0),  # Default to 0.0 if price is missing
-                "image_url": row.get("images", None),  # Handle missing images
-                "videos": row.get("videos", None),  # Handle missing videos
-                "store": row.get("store", None),  # Handle missing store
-                "categories": row.get("categories", []),  # Ensure it's a list
-                "bought_together": row.get("bought_together", []),  # Ensure it's a list
+                "price": row.get("price", 0.0),
+                "image_url": row.get("images"),
+                "videos": row.get("videos"),
+                "store": row.get("store"),
+                "categories": row.get("categories", []),
+                "bought_together": row.get("bought_together", []),
             } 
             for row in results
         ]
 
-        # Fixing the features and categories fields if they are in a wrong format
-        for product in products:
-            # For features
-            if isinstance(product["features"], str):
-                # Check for a malformed string or 'List' and convert to proper list
-                if product["features"].startswith("[") and product["features"].endswith("]"):
-                    try:
-                        product["features"] = ast.literal_eval(product["features"])  # Safely convert string to list
-                    except (ValueError, SyntaxError):
-                        product["features"] = []  # Default to empty list if eval fails
-                else:
-                    product["features"] = []  # Default to empty list if it's not a valid list string
-            
-            # For categories
-            if isinstance(product["categories"], str):
-                # Check for a malformed string or 'List' and convert to proper list
-                if product["categories"].startswith("[") and product["categories"].endswith("]"):
-                    try:
-                        product["categories"] = ast.literal_eval(product["categories"])  # Safely convert string to list
-                    except (ValueError, SyntaxError):
-                        product["categories"] = []  # Default to empty list if eval fails
-                else:
-                    product["categories"] = []  # Default to empty list if it's not a valid list string
-
-        total_count = len(products)
-
-        return {"products": products, "total_count": total_count}
+        return {"products": products, "total_count": len(products)}
 
     except Exception as e:
-        # Handle any errors during the querying process
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
 
 
 
@@ -247,3 +225,4 @@ def get_product_by_id(product_id: str):
     except Exception as e:
         # Handle any errors during the querying process
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+

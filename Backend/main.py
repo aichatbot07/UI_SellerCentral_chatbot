@@ -1,5 +1,7 @@
 from fastapi import FastAPI
+
 from api.v1.endpoints import products, auth, chatbot
+
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -30,6 +32,14 @@ if __name__ == "__main__":
     
     uvicorn.run(app, host="0.0.0.0", port=port)
 
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Allow frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(products.router)
 app.include_router(auth.router)
