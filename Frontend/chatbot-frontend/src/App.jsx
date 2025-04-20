@@ -1,53 +1,20 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { HashRouter as Router, Route, Routes } from 'react-router-dom'; // or BrowserRouter depending on your choice
 import LoginPage from "./pages/LoginPage";
 import LandingPage from "./pages/LandingPage";
-import ProductDetailPage from "./pages/ProductDetailPage";  // Import the ProductDetailPage component
+import ProductDetailPage from "./pages/ProductDetailPage";
 import ProductListPage from "./pages/ProductListPage";
 import CategoryProducts from "./components/CategoryProducts";
-import Header from "./components/Header";  // Import the header component
+import Header from "./components/Header";
 
 const App = () => {
   return (
-    <Router>
+    <Router basename="/seller-chatbot-ui">  {/* Add the basename here */}
       <Routes>
-        {/* Show LoginPage on the root route */}
         <Route path="/" element={<LoginPage />} />
-        
-        {/* Show the Header and LandingPage on /home */}
-        <Route
-          path="/home"
-          element={
-            <>
-              <Header />
-              <LandingPage />
-            </>
-          }
-        />
-        
-        {/* Show the Header and CategoryProducts on /products/category/:category */}
-        <Route
-          path="/products/category/:category"
-          element={
-            <>
-              <Header />
-              <CategoryProducts />
-            </>
-          }
-        />
-        
-        {/* Show ProductDetailPage for a specific product */}
-        <Route
-          path="/product/:productId"  // Match the product ID in the URL
-          element={
-            <>
-              <Header />
-              <ProductDetailPage />  {/* Show the ProductDetailPage component */}
-            </>
-          }
-        />
-
-        {/* If needed, you can add more routes here */}
+        <Route path="/home" element={<><Header /><LandingPage /></>} />
+        <Route path="/products/category/:category" element={<><Header /><CategoryProducts /></>} />
+        <Route path="/product/:productId" element={<><Header /><ProductDetailPage /></>} />
       </Routes>
     </Router>
   );
